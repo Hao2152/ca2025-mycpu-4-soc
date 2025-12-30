@@ -76,7 +76,7 @@ class ALU extends Module {
   val sh3addResult = ((io.op1 << 3).asUInt +& io.op2)(Parameters.DataBits - 1, 0)
 
   io.result := 0.U
-  switch(io.func) {
+  switch(io.func) { //add M / Zba extension
     is(ALUFunctions.add) {
       io.result := io.op1 + io.op2
     }

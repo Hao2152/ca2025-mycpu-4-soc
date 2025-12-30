@@ -48,7 +48,7 @@ class ALUControl extends Module {
           io.funct3,
           ALUFunctions.zero
         )(
-          IndexedSeq(
+          IndexedSeq( // add M extension
             InstructionsTypeM.mul    -> ALUFunctions.mul,
             InstructionsTypeM.mulh   -> ALUFunctions.mulh,
             InstructionsTypeM.mulhsu -> ALUFunctions.mulhsu,
@@ -64,7 +64,7 @@ class ALUControl extends Module {
           io.funct3,
           ALUFunctions.zero
         )(
-          IndexedSeq(
+          IndexedSeq( // add Zba extension
             InstructionsTypeZba.sh1add -> ALUFunctions.sh1add,
             InstructionsTypeZba.sh2add -> ALUFunctions.sh2add,
             InstructionsTypeZba.sh3add -> ALUFunctions.sh3add

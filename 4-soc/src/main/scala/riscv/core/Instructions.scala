@@ -61,6 +61,7 @@ object InstructionsTypeR {
   val and     = 7.U
 }
 
+// add M extension
 object InstructionsTypeM {
   val mul    = 0.U
   val mulh   = 1.U
@@ -72,6 +73,7 @@ object InstructionsTypeM {
   val remu   = 7.U
 }
 
+// add Zba extension
 object InstructionsTypeZba {
   val sh1add = "b010".U
   val sh2add = "b100".U
