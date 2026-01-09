@@ -238,4 +238,17 @@ class ALUTest extends AnyFlatSpec with ChiselScalatestTester {
       assert(runALU(dut, ALUFunctions.clmulh, 0xffffffffL, 0xffffffffL) == 0x55555555L)
     }
   }
+
+  // ==================== Zbs Bit Set/Clear/Invert/Extract ====================
+
+  it should "perform Zbs bit operations correctly" in {
+    test(new ALU).withAnnotations(TestAnnotations.annos) { dut =>
+      assert(runALU(dut, ALUFunctions.bset, 0x0, 5) == 0x20)
+      assert(runALU(dut, ALUFunctions.bclr, 0xff, 0) == 0xfe)
+      assert(runALU(dut, ALUFunctions.binv, 0x0, 1) == 0x2)
+      assert(runALU(dut, ALUFunctions.binv, 0x3, 1) == 0x1)
+      assert(runALU(dut, ALUFunctions.bext, 0x20, 5) == 1)
+      assert(runALU(dut, ALUFunctions.bext, 0x10, 5) == 0)
+    }
+  }
 }

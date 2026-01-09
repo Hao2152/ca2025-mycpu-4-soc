@@ -19,7 +19,8 @@ import riscv.Parameters
 object ALUFunctions extends ChiselEnum {
   val zero, add, sub, sll, slt, xor, or, and, srl, sra, sltu,
   mul, mulh, mulhsu, mulhu, div, divu, rem, remu, sh1add, sh2add, sh3add,
-  clmul, clmulh, clmulr = Value
+  clmul, clmulh, clmulr,
+  bset, bclr, binv, bext = Value
 }
 
 /**
@@ -96,6 +97,13 @@ class ALU extends Module {
   val clmulRevFull = carryLessMultiply(op1Rev, op2Rev)
   val clmulrResult = Reverse(clmulRevFull(Parameters.DataBits - 1, 0))
 
+  val bitIndex = io.op2(4, 0)
+  val bitMask  = (1.U << bitIndex)(Parameters.DataBits - 1, 0)
+  val bsetRes  = io.op1 | bitMask
+  val bclrRes  = io.op1 & (~bitMask).asUInt
+  val binvRes  = io.op1 ^ bitMask
+  val bextRes  = (io.op1 >> bitIndex) & 1.U
+
   io.result := 0.U
   switch(io.func) { //add M / Zba extension
     is(ALUFunctions.add) {
@@ -169,6 +177,18 @@ class ALU extends Module {
     }
     is(ALUFunctions.clmulr) {
       io.result := clmulrResult
+    }
+    is(ALUFunctions.bset) {
+      io.result := bsetRes
+    }
+    is(ALUFunctions.bclr) {
+      io.result := bclrRes
+    }
+    is(ALUFunctions.binv) {
+      io.result := binvRes
+    }
+    is(ALUFunctions.bext) {
+      io.result := bextRes
     }
   }
 }

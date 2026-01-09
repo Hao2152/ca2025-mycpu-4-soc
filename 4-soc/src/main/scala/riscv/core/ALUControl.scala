@@ -13,6 +13,7 @@ import riscv.core.InstructionsTypeR
 import riscv.core.InstructionsTypeM
 import riscv.core.InstructionsTypeZba
 import riscv.core.InstructionsTypeZbc
+import riscv.core.InstructionsTypeZbs
 
 class ALUControl extends Module {
   val io = IO(new Bundle {
@@ -27,7 +28,7 @@ class ALUControl extends Module {
 
   switch(io.opcode) {
     is(InstructionTypes.I) {
-      io.alu_funct := MuxLookup(
+      val aluFunctDefault = MuxLookup(
         io.funct3,
         ALUFunctions.zero
       )(
@@ -42,6 +43,21 @@ class ALUControl extends Module {
           InstructionsTypeI.sri   -> Mux(io.funct7(5), ALUFunctions.sra, ALUFunctions.srl)
         )
       )
+      when(io.funct7 === "b0100100".U) {
+        io.alu_funct := MuxLookup(
+          io.funct3,
+          ALUFunctions.zero
+        )(
+          IndexedSeq(
+            InstructionsTypeZbs.bclr -> ALUFunctions.bclr,
+            InstructionsTypeZbs.bset -> ALUFunctions.bset,
+            InstructionsTypeZbs.binv -> ALUFunctions.binv,
+            InstructionsTypeZbs.bext -> ALUFunctions.bext
+          )
+        )
+      }.otherwise {
+        io.alu_funct := aluFunctDefault
+      }
     }
     is(InstructionTypes.RM) {
       when(io.funct7 === "b0000001".U) {
@@ -80,6 +96,18 @@ class ALUControl extends Module {
             InstructionsTypeZbc.clmul  -> ALUFunctions.clmul,
             InstructionsTypeZbc.clmulr -> ALUFunctions.clmulr,
             InstructionsTypeZbc.clmulh -> ALUFunctions.clmulh
+          )
+        )
+      }.elsewhen(io.funct7 === "b0100100".U) {
+        io.alu_funct := MuxLookup(
+          io.funct3,
+          ALUFunctions.zero
+        )(
+          IndexedSeq(
+            InstructionsTypeZbs.bclr -> ALUFunctions.bclr,
+            InstructionsTypeZbs.bset -> ALUFunctions.bset,
+            InstructionsTypeZbs.binv -> ALUFunctions.binv,
+            InstructionsTypeZbs.bext -> ALUFunctions.bext
           )
         )
       }.otherwise {

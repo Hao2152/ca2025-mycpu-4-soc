@@ -86,6 +86,13 @@ object InstructionsTypeZbc {
   val clmulh = "b011".U
 }
 
+object InstructionsTypeZbs {
+  val bclr = "b001".U
+  val bset = "b010".U
+  val binv = "b011".U
+  val bext = "b101".U
+}
+
 object InstructionsTypeB {
   val beq  = "b000".U
   val bne  = "b001".U
