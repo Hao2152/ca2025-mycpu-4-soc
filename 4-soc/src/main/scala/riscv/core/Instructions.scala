@@ -80,6 +80,12 @@ object InstructionsTypeZba {
   val sh3add = "b110".U
 }
 
+object InstructionsTypeZbc {
+  val clmul  = "b001".U
+  val clmulr = "b010".U
+  val clmulh = "b011".U
+}
+
 object InstructionsTypeB {
   val beq  = "b000".U
   val bne  = "b001".U

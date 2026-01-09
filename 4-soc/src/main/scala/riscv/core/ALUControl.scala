@@ -12,6 +12,7 @@ import riscv.core.InstructionsTypeI
 import riscv.core.InstructionsTypeR
 import riscv.core.InstructionsTypeM
 import riscv.core.InstructionsTypeZba
+import riscv.core.InstructionsTypeZbc
 
 class ALUControl extends Module {
   val io = IO(new Bundle {
@@ -68,6 +69,17 @@ class ALUControl extends Module {
             InstructionsTypeZba.sh1add -> ALUFunctions.sh1add,
             InstructionsTypeZba.sh2add -> ALUFunctions.sh2add,
             InstructionsTypeZba.sh3add -> ALUFunctions.sh3add
+          )
+        )
+      }.elsewhen(io.funct7 === "b0000101".U) {
+        io.alu_funct := MuxLookup(
+          io.funct3,
+          ALUFunctions.zero
+        )(
+          IndexedSeq(
+            InstructionsTypeZbc.clmul  -> ALUFunctions.clmul,
+            InstructionsTypeZbc.clmulr -> ALUFunctions.clmulr,
+            InstructionsTypeZbc.clmulh -> ALUFunctions.clmulh
           )
         )
       }.otherwise {

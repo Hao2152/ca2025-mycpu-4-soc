@@ -207,4 +207,35 @@ class ALUTest extends AnyFlatSpec with ChiselScalatestTester {
       assert(runALU(dut, ALUFunctions.sh3add, 0x20000000L, 1) == 1) // overflow wraps to low 32 bits
     }
   }
+
+  // ==================== Zbc Carry-less Multiply ====================
+
+  def clmulRef(a: Long, b: Long): Long = {
+    var res = 0L
+    for (i <- 0 until 32) {
+      if (((b >>> i) & 1L) == 1L) {
+        res ^= (a << i)
+      }
+    }
+    res & 0xffffffffffffffffL
+  }
+
+  def rev32(x: Long): Long = java.lang.Integer.reverse(x.toInt) & 0xffffffffL
+
+  it should "perform carry-less multiply variants correctly" in {
+    test(new ALU).withAnnotations(TestAnnotations.annos) { dut =>
+      val a = 0x12345678L
+      val b = 0xf0f0f0f1L
+      val prod = clmulRef(a, b)
+      assert(runALU(dut, ALUFunctions.clmul, a, b) == (prod & 0xffffffffL))
+      assert(runALU(dut, ALUFunctions.clmulh, a, b) == ((prod >>> 32) & 0xffffffffL))
+
+      val prodRev = clmulRef(rev32(a), rev32(b))
+      val expClmulr = rev32(prodRev & 0xffffffffL)
+      assert(runALU(dut, ALUFunctions.clmulr, a, b) == expClmulr)
+
+      assert(runALU(dut, ALUFunctions.clmul, 0xffffffffL, 0xffffffffL) == 0x55555555L) // known pattern
+      assert(runALU(dut, ALUFunctions.clmulh, 0xffffffffL, 0xffffffffL) == 0x55555555L)
+    }
+  }
 }

@@ -18,7 +18,8 @@ import riscv.Parameters
  */
 object ALUFunctions extends ChiselEnum {
   val zero, add, sub, sll, slt, xor, or, and, srl, sra, sltu,
-  mul, mulh, mulhsu, mulhu, div, divu, rem, remu, sh1add, sh2add, sh3add = Value
+  mul, mulh, mulhsu, mulhu, div, divu, rem, remu, sh1add, sh2add, sh3add,
+  clmul, clmulh, clmulr = Value
 }
 
 /**
@@ -57,23 +58,43 @@ class ALU extends Module {
   val divByZero   = io.op2 === 0.U
   val divOverflow = (io.op1 === "h80000000".U(Parameters.DataWidth)) && (io.op2 === "hffffffff".U(Parameters.DataWidth))
 
-  val divSignedResult = Mux(
-    divByZero,
-    (-1.S(Parameters.DataWidth)).asUInt,
-    Mux(divOverflow, io.op1, (io.op1.asSInt / io.op2.asSInt).asUInt)
-  )
+  // Verilator requires matched widths for signed div/mod; sign-extend to 34 bits for safe division.
+  val divExtBits      = 3
+  val op1SextWide     = Cat(Fill(divExtBits, io.op1(Parameters.DataBits - 1)), io.op1).asSInt
+  val op2SextWide     = Cat(Fill(divExtBits, io.op2(Parameters.DataBits - 1)), io.op2).asSInt
+  val divSignedCalc   = (op1SextWide / op2SextWide)(Parameters.DataBits - 1, 0).asUInt
+  val remSignedCalc   = (op1SextWide % op2SextWide)(Parameters.DataBits - 1, 0).asUInt
+
+  val divSignedResult = Mux(divByZero,(-1.S(Parameters.DataWidth)).asUInt,Mux(divOverflow, io.op1, divSignedCalc))
   val divUnsignedResult = Mux(divByZero, Fill(Parameters.DataBits, 1.U), io.op1 / io.op2)
 
-  val remSignedResult = Mux(
-    divByZero,
-    io.op1,
-    Mux(divOverflow, 0.U, (io.op1.asSInt % io.op2.asSInt).asUInt)
-  )
+  val remSignedResult = Mux(divByZero, io.op1, Mux(divOverflow, 0.U, remSignedCalc))
   val remUnsignedResult = Mux(divByZero, io.op1, io.op1 % io.op2)
 
   val sh1addResult = ((io.op1 << 1).asUInt +& io.op2)(Parameters.DataBits - 1, 0)
   val sh2addResult = ((io.op1 << 2).asUInt +& io.op2)(Parameters.DataBits - 1, 0)
   val sh3addResult = ((io.op1 << 3).asUInt +& io.op2)(Parameters.DataBits - 1, 0)
+
+  def carryLessMultiply(a: UInt, b: UInt): UInt = {
+    val widthBits = Parameters.DataBits * 2
+    val aExt      = a.pad(widthBits)
+    (0 until Parameters.DataBits).map { i =>
+      Mux(
+        b(i),
+        (aExt << i)(widthBits - 1, 0),
+        0.U(widthBits.W)
+      )
+    }.reduce(_ ^ _)
+  }
+
+  val clmulFull    = carryLessMultiply(io.op1, io.op2)
+  val clmulResult  = clmulFull(Parameters.DataBits - 1, 0)
+  val clmulhResult = clmulFull(Parameters.DataBits * 2 - 1, Parameters.DataBits)
+
+  val op1Rev       = Reverse(io.op1)
+  val op2Rev       = Reverse(io.op2)
+  val clmulRevFull = carryLessMultiply(op1Rev, op2Rev)
+  val clmulrResult = Reverse(clmulRevFull(Parameters.DataBits - 1, 0))
 
   io.result := 0.U
   switch(io.func) { //add M / Zba extension
@@ -139,6 +160,15 @@ class ALU extends Module {
     }
     is(ALUFunctions.sh3add) {
       io.result := sh3addResult
+    }
+    is(ALUFunctions.clmul) {
+      io.result := clmulResult
+    }
+    is(ALUFunctions.clmulh) {
+      io.result := clmulhResult
+    }
+    is(ALUFunctions.clmulr) {
+      io.result := clmulrResult
     }
   }
 }
