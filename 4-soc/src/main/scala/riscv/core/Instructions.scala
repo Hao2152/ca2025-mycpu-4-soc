@@ -93,6 +93,36 @@ object InstructionsTypeZbs {
   val bext = "b101".U
 }
 
+object InstructionsTypeZbb {
+  // funct7=0110000, funct3=001, rs2 encodes op (0=clz,1=ctz,2=cpop)
+  val clz  = "b000".U // rs2=000
+  val ctz  = "b001".U // rs2=001
+  val cpop = "b010".U // rs2=010
+
+  // andn/orn/xnor: funct7=0100000, funct3 varies
+  val andn = "b111".U
+  val orn  = "b110".U
+  val xnor = "b100".U
+
+  // min/max family: funct7=0000101
+  val min  = "b100".U
+  val max  = "b101".U
+  val minu = "b110".U
+  val maxu = "b111".U
+
+  // rol/ror: funct7=0110000
+  val rol = "b001".U
+  val ror = "b101".U
+
+  // I-type variants (opcode=0x13, funct7/ funct3 shown in ALUControl)
+  val rori  = "b101".U
+  val sextb = "b100".U // funct7=0110000
+  val sexth = "b110".U // funct7=0110000
+  val zexth = "b100".U // funct7=0000100
+  val orcb  = "b101".U // funct7=0010100
+  val rev8  = "b101".U // funct7=0110100
+}
+
 object InstructionsTypeB {
   val beq  = "b000".U
   val bne  = "b001".U

@@ -20,7 +20,9 @@ object ALUFunctions extends ChiselEnum {
   val zero, add, sub, sll, slt, xor, or, and, srl, sra, sltu,
   mul, mulh, mulhsu, mulhu, div, divu, rem, remu, sh1add, sh2add, sh3add,
   clmul, clmulh, clmulr,
-  bset, bclr, binv, bext = Value
+  bset, bclr, binv, bext,
+  clz, ctz, cpop, andn, orn, xnor,
+  min, max, minu, maxu, rol, ror, rori, sextb, sexth, zexth, orcb, rev8 = Value
 }
 
 /**
@@ -103,6 +105,46 @@ class ALU extends Module {
   val bclrRes  = io.op1 & (~bitMask).asUInt
   val binvRes  = io.op1 ^ bitMask
   val bextRes  = (io.op1 >> bitIndex) & 1.U
+
+  val clzCount = Mux(io.op1.orR, PriorityEncoder(Reverse(io.op1)), 32.U(6.W))
+  val ctzCount = Mux(io.op1.orR, PriorityEncoder(io.op1), 32.U(6.W))
+  val cpopCount = PopCount(io.op1)
+  val clzRes  = Cat(0.U((Parameters.DataBits - 6).W), clzCount)
+  val ctzRes  = Cat(0.U((Parameters.DataBits - 6).W), ctzCount)
+  val cpopRes = Cat(0.U((Parameters.DataBits - cpopCount.getWidth).W), cpopCount)
+
+  val andnRes = io.op1 & (~io.op2).asUInt
+  val ornRes  = io.op1 | (~io.op2).asUInt
+  val xnorRes = ~(io.op1 ^ io.op2)
+
+  val minRes  = Mux(io.op1.asSInt < io.op2.asSInt, io.op1, io.op2)
+  val maxRes  = Mux(io.op1.asSInt >= io.op2.asSInt, io.op1, io.op2)
+  val minuRes = Mux(io.op1 < io.op2, io.op1, io.op2)
+  val maxuRes = Mux(io.op1 >= io.op2, io.op1, io.op2)
+
+  val rolRes = (io.op1 << io.op2(4, 0)) | (io.op1 >> (32.U - io.op2(4, 0)))
+  val rorRes = (io.op1 >> io.op2(4, 0)) | (io.op1 << (32.U - io.op2(4, 0)))
+  val roriRes = (io.op1 >> io.op2(4, 0)) | (io.op1 << (32.U - io.op2(4, 0)))
+
+  val sextbRes = Cat(Fill(24, io.op1(7)), io.op1(7, 0))
+  val sexthRes = Cat(Fill(16, io.op1(15)), io.op1(15, 0))
+  val zexthRes = Cat(0.U(16.W), io.op1(15, 0))
+
+  def orcByte(x: UInt): UInt = {
+    val grouped = x.asBools.grouped(8).toSeq.map { byte =>
+      val reduced = byte.reduce(_ || _)
+      Fill(8, reduced)
+    }
+    grouped.reverse.reduce(Cat(_, _))
+  }
+  val orcbRes = orcByte(io.op1)
+
+  val rev8Res = Cat(
+    io.op1(7, 0),
+    io.op1(15, 8),
+    io.op1(23, 16),
+    io.op1(31, 24)
+  )
 
   io.result := 0.U
   switch(io.func) { //add M / Zba extension
@@ -189,6 +231,60 @@ class ALU extends Module {
     }
     is(ALUFunctions.bext) {
       io.result := bextRes
+    }
+    is(ALUFunctions.clz) {
+      io.result := clzRes
+    }
+    is(ALUFunctions.ctz) {
+      io.result := ctzRes
+    }
+    is(ALUFunctions.cpop) {
+      io.result := cpopRes
+    }
+    is(ALUFunctions.andn) {
+      io.result := andnRes
+    }
+    is(ALUFunctions.orn) {
+      io.result := ornRes
+    }
+    is(ALUFunctions.xnor) {
+      io.result := xnorRes
+    }
+    is(ALUFunctions.min) {
+      io.result := minRes
+    }
+    is(ALUFunctions.max) {
+      io.result := maxRes
+    }
+    is(ALUFunctions.minu) {
+      io.result := minuRes
+    }
+    is(ALUFunctions.maxu) {
+      io.result := maxuRes
+    }
+    is(ALUFunctions.rol) {
+      io.result := rolRes
+    }
+    is(ALUFunctions.ror) {
+      io.result := rorRes
+    }
+    is(ALUFunctions.rori) {
+      io.result := roriRes
+    }
+    is(ALUFunctions.sextb) {
+      io.result := sextbRes
+    }
+    is(ALUFunctions.sexth) {
+      io.result := sexthRes
+    }
+    is(ALUFunctions.zexth) {
+      io.result := zexthRes
+    }
+    is(ALUFunctions.orcb) {
+      io.result := orcbRes
+    }
+    is(ALUFunctions.rev8) {
+      io.result := rev8Res
     }
   }
 }

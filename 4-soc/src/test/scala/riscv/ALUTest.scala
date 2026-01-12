@@ -251,4 +251,36 @@ class ALUTest extends AnyFlatSpec with ChiselScalatestTester {
       assert(runALU(dut, ALUFunctions.bext, 0x10, 5) == 0)
     }
   }
+
+  // ==================== Zbb Bitmanip Operations ====================
+
+  it should "perform Zbb count/bitwise/minmax/rotate ops correctly" in {
+    test(new ALU).withAnnotations(TestAnnotations.annos) { dut =>
+      assert(runALU(dut, ALUFunctions.clz, 0x00f00000L, 0) == 8) // leading zeros count
+      assert(runALU(dut, ALUFunctions.clz, 0L, 0) == 32) // all zeros -> 32
+      assert(runALU(dut, ALUFunctions.ctz, 0x0100L, 0) == 8)
+      assert(runALU(dut, ALUFunctions.ctz, 0L, 0) == 32)
+      assert(runALU(dut, ALUFunctions.cpop, 0xf0f0f0f0L, 0) == 16)
+
+      assert(runALU(dut, ALUFunctions.andn, 0xff00ff00L, 0x00ff00ffL) == 0xff00ff00L)
+      assert(runALU(dut, ALUFunctions.orn,  0xff00ff00L, 0x0f0f0f0fL) == 0xfff0fff0L)
+      assert(runALU(dut, ALUFunctions.xnor, 0xffffffffL, 0x0f0f0f0fL) == 0x0f0f0f0fL)
+
+      assert(runALU(dut, ALUFunctions.min, 0xffffffffL, 1) == 0xffffffffL)
+      assert(runALU(dut, ALUFunctions.minu, 0xffffffffL, 1) == 1)
+      assert(runALU(dut, ALUFunctions.max, 0x7fffffffL, 0x80000000L) == 0x7fffffffL)
+      assert(runALU(dut, ALUFunctions.maxu, 0x7fffffffL, 0x80000000L) == 0x80000000L)
+
+      assert(runALU(dut, ALUFunctions.rol, 0x12345678L, 8) == 0x34567812L)
+      assert(runALU(dut, ALUFunctions.ror, 0x12345678L, 8) == 0x78123456L)
+      assert(runALU(dut, ALUFunctions.rori, 0x12345678L, 4) == 0x81234567L)
+
+      assert(runALU(dut, ALUFunctions.sextb, 0x00000080L, 0) == 0xffffff80L)
+      assert(runALU(dut, ALUFunctions.sexth, 0x00008000L, 0) == 0xffff8000L)
+      assert(runALU(dut, ALUFunctions.zexth, 0xffff8000L, 0) == 0x00008000L)
+
+      assert(runALU(dut, ALUFunctions.orcb, 0x01000200L, 0) == 0xff00ff00L)
+      assert(runALU(dut, ALUFunctions.rev8, 0x11223344L, 0) == 0x44332211L)
+    }
+  }
 }

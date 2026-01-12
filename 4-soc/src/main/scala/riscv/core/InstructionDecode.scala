@@ -48,6 +48,7 @@ class InstructionDecode extends Module {
   val rd     = io.instruction(11, 7)
   val rs1    = io.instruction(19, 15)
   val rs2    = io.instruction(24, 20)
+  val shamt5 = io.instruction(24, 20)
 
   // Track which operands are actually used to avoid false hazards/stalls on
   // encodings that reuse rs1/rs2 bits for immediates (JAL, CSR immediate, etc.).
@@ -63,12 +64,19 @@ class InstructionDecode extends Module {
 
   io.regs_reg1_read_address := Mux(uses_rs1, rs1, 0.U(Parameters.PhysicalRegisterAddrWidth))
   io.regs_reg2_read_address := Mux(uses_rs2, rs2, 0.U(Parameters.PhysicalRegisterAddrWidth))
+  val immI = Mux(
+    // Zbs immediate forms (bclri/bseti/binvi/bexti) use a zero-extended shamt[4:0]
+    opcode === InstructionTypes.I && funct7 === "b0100100".U,
+    Cat(0.U(27.W), shamt5),
+    Cat(Fill(21, io.instruction(31)), io.instruction(30, 20))
+  )
+
   io.ex_immediate := MuxLookup(
     opcode,
     Cat(Fill(20, io.instruction(31)), io.instruction(31, 20))
   )(
     IndexedSeq(
-      InstructionTypes.I -> Cat(Fill(21, io.instruction(31)), io.instruction(30, 20)),
+      InstructionTypes.I -> immI,
       InstructionTypes.L -> Cat(Fill(21, io.instruction(31)), io.instruction(30, 20)),
       Instructions.jalr  -> Cat(Fill(21, io.instruction(31)), io.instruction(30, 20)),
       InstructionTypes.S -> Cat(Fill(21, io.instruction(31)), io.instruction(30, 25), io.instruction(11, 7)),
