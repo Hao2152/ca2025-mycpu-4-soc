@@ -12,7 +12,7 @@ LD := $(CROSS_COMPILE)ld
 OBJCOPY := $(CROSS_COMPILE)objcopy
 
 # Program targets (add new programs here)
-PROGRAMS := nyancat uart shell
+PROGRAMS := nyancat uart shell fib fib_M mulbench mulbench_M Quiz3_ProblemC Quiz3_ProblemC_M Quiz4_ProblemC Quiz4_ProblemC_M Quiz4_ProblemG Quiz4_ProblemG_M
 BINARIES := $(PROGRAMS:%=%.asmbin)
 
 %.asmbin: %.elf
@@ -37,6 +37,56 @@ shell.asmbin: shell.c mmio.h init.o link.lds
 	$(CC) $(CFLAGS) -c -o shell.o shell.c
 	$(CROSS_COMPILE)ld -o shell.elf -T link.lds $(LDFLAGS) shell.o init.o
 	$(OBJCOPY) -O binary -j .text -j .data shell.elf $@
+
+fib.asmbin: fib.S init.o link.lds
+	$(AS) -R $(ASFLAGS) -o fib.o fib.S
+	$(CROSS_COMPILE)ld -o fib.elf -T link.lds $(LDFLAGS) fib.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data fib.elf $@
+
+fib_M.asmbin: fib_M.S init.o link.lds
+	$(AS) -R -march=rv32im_zicsr -mabi=ilp32 -o fib_M.o fib_M.S
+	$(CROSS_COMPILE)ld -o fib_M.elf -T link.lds $(LDFLAGS) fib_M.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data fib_M.elf fib_M.asmbin
+
+mulbench.asmbin: mulbench.S init.o link.lds
+	$(AS) -R $(ASFLAGS) -o mulbench.o mulbench.S
+	$(CROSS_COMPILE)ld -o mulbench.elf -T link.lds $(LDFLAGS) mulbench.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data mulbench.elf mulbench.asmbin
+
+mulbench_M.asmbin: mulbench_M.S init.o link.lds
+	$(AS) -R -march=rv32im_zicsr -mabi=ilp32 -o mulbench_M.o mulbench_M.S
+	$(CROSS_COMPILE)ld -o mulbench_M.elf -T link.lds $(LDFLAGS) mulbench_M.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data mulbench_M.elf mulbench_M.asmbin
+
+Quiz3_ProblemC.asmbin: Quiz3_ProblemC.S init.o link.lds
+	$(AS) -R $(ASFLAGS) -o Quiz3_ProblemC.o Quiz3_ProblemC.S
+	$(CROSS_COMPILE)ld -o Quiz3_ProblemC.elf -T link.lds $(LDFLAGS) Quiz3_ProblemC.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data Quiz3_ProblemC.elf Quiz3_ProblemC.asmbin
+
+Quiz3_ProblemC_M.asmbin: Quiz3_ProblemC_M.S init.o link.lds
+	$(AS) -R -march=rv32im_zicsr_zba_zbb_zbc_zbs -mabi=ilp32 -o Quiz3_ProblemC_M.o Quiz3_ProblemC_M.S
+	$(CROSS_COMPILE)ld -o Quiz3_ProblemC_M.elf -T link.lds $(LDFLAGS) Quiz3_ProblemC_M.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data Quiz3_ProblemC_M.elf Quiz3_ProblemC_M.asmbin
+
+Quiz4_ProblemC.asmbin: Quiz4_ProblemC.S init.o link.lds
+	$(AS) -R $(ASFLAGS) -o Quiz4_ProblemC.o Quiz4_ProblemC.S
+	$(CROSS_COMPILE)ld -o Quiz4_ProblemC.elf -T link.lds $(LDFLAGS) Quiz4_ProblemC.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data Quiz4_ProblemC.elf Quiz4_ProblemC.asmbin
+
+Quiz4_ProblemC_M.asmbin: Quiz4_ProblemC_M.S init.o link.lds
+	$(AS) -R -march=rv32im_zicsr -mabi=ilp32 -o Quiz4_ProblemC_M.o Quiz4_ProblemC_M.S
+	$(CROSS_COMPILE)ld -o Quiz4_ProblemC_M.elf -T link.lds $(LDFLAGS) Quiz4_ProblemC_M.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data Quiz4_ProblemC_M.elf Quiz4_ProblemC_M.asmbin
+
+Quiz4_ProblemG.asmbin: Quiz4_ProblemG.S init.o link.lds
+	$(AS) -R $(ASFLAGS) -o Quiz4_ProblemG.o Quiz4_ProblemG.S
+	$(CROSS_COMPILE)ld -o Quiz4_ProblemG.elf -T link.lds $(LDFLAGS) Quiz4_ProblemG.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data Quiz4_ProblemG.elf Quiz4_ProblemG.asmbin
+
+Quiz4_ProblemG_M.asmbin: Quiz4_ProblemG_M.S init.o link.lds
+	$(AS) -R -march=rv32im_zicsr -mabi=ilp32 -o Quiz4_ProblemG_M.o Quiz4_ProblemG_M.S
+	$(CROSS_COMPILE)ld -o Quiz4_ProblemG_M.elf -T link.lds $(LDFLAGS) Quiz4_ProblemG_M.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data Quiz4_ProblemG_M.elf Quiz4_ProblemG_M.asmbin
 
 init.o: init.S
 	$(AS) -R $(ASFLAGS) -o $@ $<
