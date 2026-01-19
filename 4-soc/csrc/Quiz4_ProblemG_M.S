@@ -7,27 +7,7 @@
 .set RESULT_ADDR,    0x00000108
 
 popcount_RV32M:
-    add     t0, x0, a0       # x
-    srli    t1, t0, 1
-    lui     t2, 0x55555
-    addi    t2, t2, 0x555    # t2 = 0x55555555
-    and     t1, t1, t2
-    sub     t0, t0, t1
-    lui     t2, 0x33333
-    addi    t2, t2, 0x333    # t2 = 0x33333333
-    and     t1, t0, t2
-    srli    t3, t0, 2
-    and     t3, t3, t2
-    add     t0, t1, t3
-    srli    t1, t0, 4
-    add     t0, t0, t1
-    lui     t2, 0x0f0f1
-    addi    t2, t2, -0xf1    # t2 = 0x0f0f0f0f
-    and     t0, t0, t2
-    lui     t2, 0x01010
-    addi    t2, t2, 0x101    # t2 = 0x01010101
-    mul     t0, t0, t2
-    srli    a0, t0, 24
+    cpop    a0, a0
     ret
 
 main:

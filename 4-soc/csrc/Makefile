@@ -74,7 +74,7 @@ Quiz4_ProblemC.asmbin: Quiz4_ProblemC.S init.o link.lds
 	$(OBJCOPY) -O binary -j .text -j .data Quiz4_ProblemC.elf Quiz4_ProblemC.asmbin
 
 Quiz4_ProblemC_M.asmbin: Quiz4_ProblemC_M.S init.o link.lds
-	$(AS) -R -march=rv32im_zicsr -mabi=ilp32 -o Quiz4_ProblemC_M.o Quiz4_ProblemC_M.S
+	$(AS) -R -march=rv32im_zicsr_zba_zbb_zbc_zbs -mabi=ilp32 -o Quiz4_ProblemC_M.o Quiz4_ProblemC_M.S
 	$(CROSS_COMPILE)ld -o Quiz4_ProblemC_M.elf -T link.lds $(LDFLAGS) Quiz4_ProblemC_M.o init.o
 	$(OBJCOPY) -O binary -j .text -j .data Quiz4_ProblemC_M.elf Quiz4_ProblemC_M.asmbin
 
@@ -84,7 +84,7 @@ Quiz4_ProblemG.asmbin: Quiz4_ProblemG.S init.o link.lds
 	$(OBJCOPY) -O binary -j .text -j .data Quiz4_ProblemG.elf Quiz4_ProblemG.asmbin
 
 Quiz4_ProblemG_M.asmbin: Quiz4_ProblemG_M.S init.o link.lds
-	$(AS) -R -march=rv32im_zicsr -mabi=ilp32 -o Quiz4_ProblemG_M.o Quiz4_ProblemG_M.S
+	$(AS) -R -march=rv32im_zicsr_zba_zbb_zbc_zbs -mabi=ilp32 -o Quiz4_ProblemG_M.o Quiz4_ProblemG_M.S
 	$(CROSS_COMPILE)ld -o Quiz4_ProblemG_M.elf -T link.lds $(LDFLAGS) Quiz4_ProblemG_M.o init.o
 	$(OBJCOPY) -O binary -j .text -j .data Quiz4_ProblemG_M.elf Quiz4_ProblemG_M.asmbin
 
