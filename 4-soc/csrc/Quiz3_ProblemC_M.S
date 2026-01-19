@@ -11,22 +11,6 @@ case_count:
     .section .text
     .globl  main
 
-# fast_rsqrt (Newton + mul/mulhu 版本)
-# Input : a0 = x (uint32, x > 0)
-# Output: a0 = approx 2^16 / sqrt(x)  (Q16.16 reciprocal sqrt)
-# Uses  : RV32IM + Zbb (clz)
-#
-# Newton iteration (對 2^16 scaling 展開):
-#   y2  = (uint32_t)(y * y);
-#   xy2 = (uint32_t)((uint64_t)x * y2 >> 16);
-#   y   = (uint32_t)((uint64_t)y * ((3<<16) - xy2) >> 17);
-#
-# 初始值:
-#   exp   = 31 - clz(x)          // MSB index
-#   e2    = exp / 2
-#   shift = 16 - e2
-#   y0    = 1 << shift
-
 fast_rsqrt:
     addi    sp, sp, -32
     sw      ra, 28(sp)
@@ -34,29 +18,22 @@ fast_rsqrt:
     sw      s1, 20(sp)
 
     mv      s0, a0              # s0 = x
-    beqz    s0, 9f              # x == 0 → 直接回 0
+    beqz    s0, 9f              # x == 0 
 
-    # -------- 初始近似 y0 --------
-    # exp = 31 - clz(x)
     clz     t0, s0              # t0 = clz(x)
     li      t1, 31
     sub     t1, t1, t0          # t1 = exp = 31 - clz(x)
 
-    # e2 = exp / 2
     srli    t2, t1, 1           # t2 = e2 = exp >> 1
 
-    # shift = 16 - e2
     li      t3, 16
     sub     t3, t3, t2          # t3 = 16 - e2
 
-    # y0 = 1 << shift
     li      t4, 1
     sll     s1, t4, t3          # s1 = y = 1 << (16 - exp/2)
+    li      t6, 2               
 
-    # -------- Newton 迭代次數：2 次 --------
-    li      t6, 2               # 用 t6 當迴圈計數器（t7 不存在）
-
-1:  # y2 = (uint32_t)(y * y)
+1:  
     mul     t0, s1, s1          # t0 = low32(y * y)
     mv      t1, t0              # t1 = y2
 
@@ -84,9 +61,8 @@ fast_rsqrt:
     or      s1, t4, t5          # s1 = y = y_next
 
     addi    t6, t6, -1
-    bnez    t6, 1b              # 再做下一次迭代
+    bnez    t6, 1b              
 
-    # 回傳 y (Q16.16 reciprocal sqrt)
     mv      a0, s1
 
     lw      s1, 20(sp)
@@ -95,109 +71,8 @@ fast_rsqrt:
     addi    sp, sp, 32
     ret
 
-9:  # x == 0 → 回傳 0
+9:
     li      a0, 0
-    lw      s1, 20(sp)
-    lw      s0, 24(sp)
-    lw      ra, 28(sp)
-    addi    sp, sp, 32
-    ret
-
-# （下面這兩個函式是舊版 bitwise isqrt/recip，可留可刪，不再被 fast_rsqrt 呼叫）
-
-isqrt32:
-    addi    sp, sp, -52
-    sw      ra, 48(sp)
-    sw      s0, 44(sp)
-    sw      s1, 40(sp)
-    sw      s2, 36(sp)
-    sw      s3, 32(sp) 
-
-    mv      s0, a0            # s0 = x
-    li      s1, 0             # s1 = result
-
-    beqz    s0, .isq_done_zero    # x = 0 special case, return 0
-
-    clz     t0, s0            # t0 = leading zeros of x
-    li      t1, 31
-    sub     t1, t1, t0        # t1 = highest bit index (0..31)
-    andi    t1, t1, -2        
-    li      s2, 1
-    sll     s2, s2, t1        
-
-    j       .isq_loop
-
-.isq_done_zero:
-    li      s2, 0             
-    j       .isq_done
-
-.isq_loop:
-    beqz    s2, .isq_done
-    add     t0, s1, s2
-    bltu    s0, t0, .isq_skip
-    sub     s0, s0, t0
-    srli    s1, s1, 1
-    add     s1, s1, s2
-    j       .isq_next
-.isq_skip:
-    srli    s1, s1, 1
-.isq_next:
-    srli    s2, s2, 2
-    j       .isq_loop
-
-.isq_done:
-    mv      a0, s1
-    lw      s3, 32(sp)
-    lw      s2, 36(sp)
-    lw      s1, 40(sp)
-    lw      s0, 44(sp)
-    lw      ra, 48(sp)
-    addi    sp, sp, 52
-    ret
-
-recip_q32:
-    addi    sp, sp, -32
-    sw      ra, 28(sp)
-    sw      s0, 24(sp)
-    sw      s1, 20(sp)
-    sw      s2, 16(sp)
-    sw      s3, 12(sp)
-
-    mv      s0, a0
-    beqz    s0, .rcp_zero
-
-    li      s1, 0
-    li      s2, 0
-    li      s3, 33
-.rcp_loop:
-    beqz    s3, .rcp_done
-    slli    s1, s1, 1
-    li      t0, 33
-    beq     s3, t0, 1f
-    j       2f
-1:  ori     s1, s1, 1
-2:  slli    s2, s2, 1
-    bltu    s1, s0, .rcp_next
-    sub     s1, s1, s0
-    bset    s2, s2, 0
-.rcp_next:
-    addi    s3, s3, -1
-    j       .rcp_loop
-
-.rcp_done:
-    mv      a0, s2
-    lw      s3, 12(sp)
-    lw      s2, 16(sp)
-    lw      s1, 20(sp)
-    lw      s0, 24(sp)
-    lw      ra, 28(sp)
-    addi    sp, sp, 32
-    ret
-
-.rcp_zero:
-    li      a0, 0
-    lw      s3, 12(sp)
-    lw      s2, 16(sp)
     lw      s1, 20(sp)
     lw      s0, 24(sp)
     lw      ra, 28(sp)
