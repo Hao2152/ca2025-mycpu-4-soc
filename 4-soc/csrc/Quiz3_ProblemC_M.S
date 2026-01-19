@@ -11,34 +11,99 @@ case_count:
     .section .text
     .globl  main
 
+# fast_rsqrt (Newton + mul/mulhu 版本)
+# Input : a0 = x (uint32, x > 0)
+# Output: a0 = approx 2^16 / sqrt(x)  (Q16.16 reciprocal sqrt)
+# Uses  : RV32IM + Zbb (clz)
+#
+# Newton iteration (對 2^16 scaling 展開):
+#   y2  = (uint32_t)(y * y);
+#   xy2 = (uint32_t)((uint64_t)x * y2 >> 16);
+#   y   = (uint32_t)((uint64_t)y * ((3<<16) - xy2) >> 17);
+#
+# 初始值:
+#   exp   = 31 - clz(x)          // MSB index
+#   e2    = exp / 2
+#   shift = 16 - e2
+#   y0    = 1 << shift
+
 fast_rsqrt:
     addi    sp, sp, -32
     sw      ra, 28(sp)
     sw      s0, 24(sp)
     sw      s1, 20(sp)
 
-    mv      s0, a0
-    beqz    s0, 9f
+    mv      s0, a0              # s0 = x
+    beqz    s0, 9f              # x == 0 → 直接回 0
 
-    mv      a0, s0
-    jal     ra, isqrt32
-    mv      s1, a0
+    # -------- 初始近似 y0 --------
+    # exp = 31 - clz(x)
+    clz     t0, s0              # t0 = clz(x)
+    li      t1, 31
+    sub     t1, t1, t0          # t1 = exp = 31 - clz(x)
 
+    # e2 = exp / 2
+    srli    t2, t1, 1           # t2 = e2 = exp >> 1
+
+    # shift = 16 - e2
+    li      t3, 16
+    sub     t3, t3, t2          # t3 = 16 - e2
+
+    # y0 = 1 << shift
+    li      t4, 1
+    sll     s1, t4, t3          # s1 = y = 1 << (16 - exp/2)
+
+    # -------- Newton 迭代次數：2 次 --------
+    li      t6, 2               # 用 t6 當迴圈計數器（t7 不存在）
+
+1:  # y2 = (uint32_t)(y * y)
+    mul     t0, s1, s1          # t0 = low32(y * y)
+    mv      t1, t0              # t1 = y2
+
+    # tmp64 = (uint64_t)x * y2
+    mul     t2, s0, t1          # t2 = lo32(tmp64)
+    mulhu   t3, s0, t1          # t3 = hi32(tmp64) (unsigned)
+
+    # xy2 = tmp64 >> 16
+    slli    t4, t3, 16          # hi32 << 16
+    srli    t5, t2, 16          # lo32 >> 16
+    or      t4, t4, t5          # t4 = xy2
+
+    # c = (3<<16) - xy2
+    li      t5, 3
+    slli    t5, t5, 16          # t5 = 3 << 16
+    sub     t5, t5, t4          # t5 = (3<<16) - xy2
+
+    # prod = (uint64_t)y * c
+    mul     t2, s1, t5          # t2 = lo32(prod)
+    mulhu   t3, s1, t5          # t3 = hi32(prod)
+
+    # y_next = prod >> 17
+    slli    t4, t3, 15          # hi32 << (32 - 17) = hi32 << 15
+    srli    t5, t2, 17          # lo32 >> 17
+    or      s1, t4, t5          # s1 = y = y_next
+
+    addi    t6, t6, -1
+    bnez    t6, 1b              # 再做下一次迭代
+
+    # 回傳 y (Q16.16 reciprocal sqrt)
     mv      a0, s1
-    jal     ra, recip_q32
 
-    lw      ra, 28(sp)
-    lw      s0, 24(sp)
     lw      s1, 20(sp)
+    lw      s0, 24(sp)
+    lw      ra, 28(sp)
     addi    sp, sp, 32
     ret
 
-9:  li      a0, 0
-    lw      ra, 28(sp)
-    lw      s0, 24(sp)
+9:  # x == 0 → 回傳 0
+    li      a0, 0
     lw      s1, 20(sp)
+    lw      s0, 24(sp)
+    lw      ra, 28(sp)
     addi    sp, sp, 32
     ret
+
+# （下面這兩個函式是舊版 bitwise isqrt/recip，可留可刪，不再被 fast_rsqrt 呼叫）
 
 isqrt32:
     addi    sp, sp, -52
