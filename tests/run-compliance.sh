@@ -3,7 +3,7 @@
 # Run RISCOF compliance tests for MyCPU projects
 # Usage:
 #   ./run-compliance.sh [PROJECT]
-# PROJECT: 1-single-cycle, 2-mmio-trap, or 3-pipeline (default: 1-single-cycle)
+# PROJECT: 1-single-cycle, 2-mmio-trap, 3-pipeline, or 4-soc (default: 1-single-cycle)
 
 set -euo pipefail  # Improved error handling: unset variables and pipe failures
 
@@ -55,7 +55,7 @@ PROJECT="${1:-1-single-cycle}"
 # Validate project
 if [[ ! -d "../${PROJECT}" ]]; then
     echo "Error: Project directory ../${PROJECT} not found"
-    echo "Usage: $0 [1-single-cycle|2-mmio-trap|3-pipeline]"
+    echo "Usage: $0 [1-single-cycle|2-mmio-trap|3-pipeline|4-soc]"
     exit 1
 fi
 
